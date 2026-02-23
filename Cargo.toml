@@ -1,0 +1,16 @@
+[package]
+name = "hello-tokio-my-redis"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+mini-redis = "0.4"
+bytes = "1.11.0"
+log = "0.4"
+env_logger = "0.11"
+tokio-stream = "0.1.18"
+tracing = "0.1.44"
+tracing-subscriber = "0.3.22"
+anyhow = "1.0.101"
+async-stream = "0.3.6"
