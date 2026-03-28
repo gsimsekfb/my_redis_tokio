@@ -43,7 +43,7 @@ async fn main() -> Result<()> {
             println!("-- manager task: got cmd = {cmd:?}\n");
             match cmd {
                 Set { key, val, responder } => {
-                    let res= client.set(&key, val.into()).await;
+                    let res= client.set(&key, val).await;
                     // !! signal that set cmd processed by db server
                     let _ = responder.send(res); // send resp. to Set task
                 },
