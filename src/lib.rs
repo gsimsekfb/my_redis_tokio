@@ -1,4 +1,5 @@
 #![allow(unused)]
+#![allow(clippy::four_forward_slashes)]
 
 mod temp;
 mod mutex_sharding;

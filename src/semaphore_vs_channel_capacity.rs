@@ -84,7 +84,7 @@ async fn main_() {
             // CRITICAL MOMENT:
             // If the channel has 100 items in it, this line will WAIT here.
             // It will not return. This creates "backpressure."
-            if let Err(_) = tx_clone.send(socket).await {
+            if tx_clone.send(socket).await.is_err() {
                 println!("Receiver dropped, system shutting down");
             }
         });
