@@ -1,0 +1,1 @@
+![Clippy](https://github.com/gsimsekfb/my_rust_lib/actions/workflows/clippy.yml/badge.svg)

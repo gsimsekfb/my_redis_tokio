@@ -84,8 +84,13 @@ async fn publish() -> mini_redis::Result<()> {
 async fn subscribe() -> mini_redis::Result<()> {
     let client = client::connect("127.0.0.1:6379").await?;
     let subscriber = client.subscribe(vec!["numbers".to_string()]).await?;
+
+    // todo
+    #[allow(clippy::match_like_matches_macro)]
     let messages = subscriber.into_stream()
         // Adapters: fns that take a Stream and return another Stream
+        // todo:
+        // .filter(|msg| matches!(msg, Ok(msg) if msg.content.len() == 1))
         .filter(|msg| match msg { 
             Ok(msg) if msg.content.len() == 1 => true,
             _ => false
