@@ -16,8 +16,24 @@ use std::sync::{Arc, Mutex};
 // - await frames from connection
 // - convert frame to cmd and execute cmd
 // - send result to client
+//
+// v2: added error handling, connection limit
+
+
+
+// this can be another task? : real database engine like bunny.net
+//
+// This is a toy Redis — RwLock or DashMap is the right call. 
+// The actor pattern there is pedagogical, not prescriptive. In a real database
+// engine like bunny.net is building, you'd likely see both: DashMap for 
+// the hot read path, and a dedicated task managing writes, WAL flushing, and
+// replication — because those operations need ordering guarantees that 
+// shared state alone can't provide.
+
 
 type Db = Arc<Mutex<HashMap<String, Bytes>>>;
+
+const MAX_CONNECTIONS: usize = 100;
 
 #[tokio::main]
 async fn main() {
@@ -27,23 +43,32 @@ async fn main() {
     println!("-- main task: Listening ...");
 
     let db: Arc<Mutex<HashMap<String, Bytes>>> = Arc::new(Mutex::new(HashMap::new()));
+    // connection limit / backpressure
+    let semaphore = Arc::new(tokio::sync::Semaphore::new(MAX_CONNECTIONS));
 
     loop {
         // Wait for new connection
-        let (socket, _) = listener.accept().await.unwrap();
+        let socket = match listener.accept().await {
+            Ok((socket, _)) => socket,
+            Err(err) => { println!("-- err: {err:?}"); continue; }             
+        };
+        println!("-- main task: Accepted new connection");
 
         let db = db.clone(); // clones the Arc ptr, not the HashMap
+        let permit = semaphore.clone().acquire_owned().await.unwrap();
 
-        println!("-- main task: Accepted new connection");
         // A new task is spawned for each inbound socket. The socket is
         // moved to the new task and processed there.
         tokio::spawn(async move {
-            process(socket, db).await;
+            let _permit = permit; // dropped when task ends
+            if let Err(err) = process(socket, db).await {
+                println!("-- process returned err: {err:?}");
+            }
         });
     }
 }
 
-async fn process(socket: TcpStream, db: Db) {
+async fn process(socket: TcpStream, db: Db) -> mini_redis::Result<()> {
     println!("-- worker task: started, socket: {socket:?}");
 
     use mini_redis::Command::{self, Get, Set};
@@ -57,12 +82,23 @@ async fn process(socket: TcpStream, db: Db) {
     //      frame: Array([Bulk(b"set"), Bulk(b"x"), Bulk(b"42")])
     //      cmd: set, cmd.key: x, cmd.value: 42
     // Use `read_frame` to receive a command from the connection.
-    while let Some(frame) = connection.read_frame().await.unwrap() {
-        let cmd = Command::from_frame(frame);
+    while let Some(frame) = connection.read_frame().await? {
+        let cmd = Command::from_frame(frame)?;
         println!("-- worker task: fn process(): incoming cmd: {:?}", cmd);
-        let response = match cmd.unwrap() {
+        let response = match cmd {
             Set(cmd) => {
                 let mut db = db.lock().unwrap();
+                    // option-1 (this): 
+                    // worker panics if mutex is poisoned (poison: another 
+                    // worker panicked while mutex is locked)
+                    //
+                    // option-2: ignore poisoning and/to prevent worker panic
+                    // (extracts MutexGuard from inside PoisonError)
+                    // let mut db = db.lock().unwrap_or_else(|e| e.into_inner());
+                    //
+                    // option-3: return poison error as string
+                    // let mut db = db.lock().map_err(|e| e.to_string())?;
+
                 // The value is stored as `Vec<u8>`
                 db.insert(cmd.key().to_string(), cmd.value().clone());
                 Frame::Simple("OK".to_string())
@@ -82,7 +118,8 @@ async fn process(socket: TcpStream, db: Db) {
         };
 
         // Write the response to the client
-        connection.write_frame(&response).await.unwrap();
+        connection.write_frame(&response).await?;
     }
     println!("-- worker task: fn process() ends..\n");
+    Ok(())
 }
