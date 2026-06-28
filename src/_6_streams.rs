@@ -1,4 +1,4 @@
-
+#![allow(dead_code)]
 
 // https://tokio.rs/tokio/tutorial/streams
 
@@ -8,15 +8,19 @@
 // It is the asynchronous almost equivalent to Rust's std::iter::Iterator and 
 // is represented by the Stream trait
 
+
 // 1. Simple iteration
+//
 // Note: 
 // Currently, Rust does not support async `for` loops. Instead, iterating 
 // streams is done using a while let loop paired with StreamExt::next().
 
-// use tokio_stream::StreamExt;
 
+/// Produce stream and consume it by waiting for the next one
 #[tokio::main]
 async fn main() {
+    
+    //// a.
     let mut stream = tokio_stream::iter(&[1, 2, 3]);
 
     // consumer:
@@ -24,13 +28,16 @@ async fn main() {
         println!("GOT = {value:?}", );
     }
 
+
     // or
-    // async-stream crate provides a stream! macro that transforms the 
+
+    // b. async-stream crate provides a stream! macro that transforms the 
     // input into a stream:
     use async_stream::stream;
     use tokio::time::{sleep, Duration, Instant};
 
     // Use case: Throttled/timed stream - emits values at regular intervals.
+    // producer:
     let stream = stream! {
         let mut when = Instant::now();
         for _ in 0..3 {
@@ -61,6 +68,22 @@ use tokio_stream::StreamExt;
 use mini_redis::client;
 use tokio::time::{sleep, Duration};
 
+
+#[tokio::main]
+async fn main_() -> mini_redis::Result<()> {
+    let _handle_publish = tokio::spawn(async { publish().await });
+    subscribe().await?;
+
+    // let _res = _handle_publish.await.unwrap();
+    // dbg!(_res);
+
+    println!("-- main: DONE");
+
+    Ok(())
+}
+
+/// connect to redis server at localhost:6379
+/// publish data/messages (e.g. "1", "two") into channel "numbers" 
 async fn publish() -> mini_redis::Result<()> {
     let mut client = client::connect("127.0.0.1:6379").await?;
 
@@ -81,6 +104,10 @@ async fn publish() -> mini_redis::Result<()> {
     Ok(())
 }
 
+
+/// connect to redis server at localhost:6379
+/// subscriber subscribes to channel "numbers"
+/// subscriber waits for the stream messages e.g. "1", "3"
 async fn subscribe() -> mini_redis::Result<()> {
     let client = client::connect("127.0.0.1:6379").await?;
     let subscriber = client.subscribe(vec!["numbers".to_string()]).await?;
@@ -130,15 +157,3 @@ async fn subscribe() -> mini_redis::Result<()> {
     Ok(())
 }
 
-#[tokio::main]
-async fn main_() -> mini_redis::Result<()> {
-    let _handle_publish = tokio::spawn(async { publish().await });
-    subscribe().await?;
-
-    // let _res = _handle_publish.await.unwrap();
-    // dbg!(_res);
-
-    println!("-- main: DONE");
-
-    Ok(())
-}

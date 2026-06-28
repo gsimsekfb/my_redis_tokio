@@ -27,7 +27,8 @@ This is an educational library with working self-contained examples with lots of
 **Other Concepts**  
 [3_io_chapter.rs.todo](src/_3_io_chapter.rs.todo)  
 [4_framing.rs.todo](src/_4_framing.rs.todo)  
-[5_select_timeout.rs](src/_5_select_timeout.rs)  
+[5_a_select_join_try_join.rs](src/_5_a_select_join_try_join.rs)  
+[5_b_select_timeout.rs](src/_5_b_select_timeout.rs)  
 [6_streams.rs](src/_6_streams.rs)
 
 
