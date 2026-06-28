@@ -5,8 +5,9 @@ use tokio::sync::{mpsc, oneshot};
 // Summary:
 // - Setter task sends Set cmd to Manager task
 // - Getter task sends Get cmd to Manager task
-// - Manager task sends each cmd to db server and sends the 
-//   cmd response back to the Get/Set tasks
+// - Manager task sends each cmd to db server (bin/server.rs or other server
+//   in other files in this repo) 
+//   and sends the cmd response back to the Get/Set tasks
 // - See also more info in code.
 
 
@@ -112,5 +113,6 @@ async fn main() -> Result<()> {
         // Once both are dropped, rx.recv() returns None, the while exits, 
         // and the manager task ends.
 
+    println!("-- end of main");
     Ok(())
 }

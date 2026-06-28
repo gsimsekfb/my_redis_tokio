@@ -17,3 +17,23 @@ async-stream = "0.3.6"
 
 [lints.clippy]
 four_forward_slashes = "allow"
+
+[[bin]]
+name = "server"
+path = "src/bin/server.rs"
+
+[[bin]]
+name = "client_v1"
+path = "src/bin/client_v1_set_get_unordered.rs"
+
+[[bin]]
+name = "client_v2"
+path = "src/bin/client_v2_set_get_ordered.rs"
+
+[[bin]]
+name = "2_a"
+path = "src/_2_a_mutex_high_contention.rs"
+
+[[bin]]
+name = "2_b"
+path = "src/_2_b_mutex_sharding.rs"

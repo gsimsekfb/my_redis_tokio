@@ -6,15 +6,21 @@
 
 
 //// Semaphore vs Channel Capacity
-// Semaphore limits the number of active workers, the Channel Capacity 
-// limits the size of the waiting line.
+// - Semaphore limits the concurrent access (or active workers) to any limited
+// resource.
+// - Channel Capacity limits the size of the waiting line
 //
-// In Tokio, this concept is called Backpressure.
+// In Tokio, these concepts are called Backpressure.
 
 
 use tokio::net::TcpListener;
 use tokio::sync::Semaphore;
 use std::sync::Arc;
+
+
+//// A. Semaphore example:
+//// - Limit concurrency to 100 simultaneous connections
+//// - Every "permitted" connection moved into a new task w/ fn process
 
 // #[tokio::main]
 async fn main__() {
@@ -52,6 +58,14 @@ async fn process(socket: tokio::net::TcpStream) {
 // ====
 
 
+//// B. Channel capacity example:
+// - Create a channel with a fixed capacity (Bound = 100)
+// - Spawn a background "Manager" task (rx, single Consumer)
+// - Main Loop (txs, "multi" Producers), send permitted connection socket into
+//   manager task (rx).
+// - rx waits, and pulls items off the queue and processes them
+
+
 // use tokio::net::TcpListener;
 use tokio::sync::mpsc;
 
@@ -60,10 +74,10 @@ async fn main_() {
     let listener = TcpListener::bind("127.0.0.1:8080").await.unwrap();
 
     // 1. Create a channel with a fixed capacity (Bound = 100)
-    // "tx" is the sender (Producer), "rx" is the receiver (Consumer)
     let (tx, mut rx) = mpsc::channel(100);
+        // "tx" are the senders (Producers), "rx" is the receiver (Consumer)
 
-    // 2. Spawn a background "Manager" task (The Consumer)
+    // 2. Spawn a background "Manager" task (rx, single Consumer)
     // This task pulls items off the queue and processes them.
     tokio::spawn(async move {
         while let Some(connection) = rx.recv().await {
@@ -72,7 +86,7 @@ async fn main_() {
         }
     });
 
-    // 3. The Main Loop (The Producer)
+    // 3. The Main Loop (txs, "multi" Producers)
     loop {
         let (socket, _) = listener.accept().await.unwrap();
 

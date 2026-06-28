@@ -26,7 +26,7 @@ async fn main() -> Result<()> {
 
     let (tx, mut rx) = mpsc::channel(32);
         // producers: tx_get, tx_set
-        // consumer : manager
+        // consumer : rx, manager
 
     //// Note: 1,2,3 is spawn order. Execution is unordered.
 

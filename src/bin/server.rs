@@ -10,8 +10,9 @@ use std::sync::{Arc, Mutex};
 // - loop 
 //   . await for a new network connection 
 //   . once new connection arrived, create socket, spawn worker task and 
-//     share a copy of ptr to db with it and move socket to into it too.
-// Worker task:
+//     share a copy of ptr to db with it and move socket into worker task too.
+//
+// Worker taskS:
 // - create a connection from socket
 // - await frames from connection
 // - convert frame to cmd and execute cmd
@@ -57,7 +58,7 @@ async fn main() {
         let db = db.clone(); // clones the Arc ptr, not the HashMap
         let permit = semaphore.clone().acquire_owned().await.unwrap();
 
-        // A new task is spawned for each inbound socket. The socket is
+        // A new worker task is spawned for each inbound socket. The socket is
         // moved to the new task and processed there.
         tokio::spawn(async move {
             let _permit = permit; // dropped when task ends
@@ -68,6 +69,7 @@ async fn main() {
     }
 }
 
+/// worker task's fn
 async fn process(socket: TcpStream, db: Db) -> mini_redis::Result<()> {
     println!("-- worker task: started, socket: {socket:?}");
 
